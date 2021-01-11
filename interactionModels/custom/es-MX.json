@@ -1,0 +1,464 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "singular agil",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": [
+            "cancelar",
+            "cancela",
+            "detente"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": [
+            "ayudame",
+            "necesito ayuda",
+            "ayuda"
+          ]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": [
+            "bay",
+            "no deseo",
+            "no quiero",
+            "no deseo continuar",
+            "quiero salir",
+            "cerrar",
+            "bye",
+            "fin",
+            "ya termine",
+            "cancelar",
+            "no quiero continuar",
+            "es todo por hoy",
+            "callate",
+            "detente",
+            "adios",
+            "salir"
+          ]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "StudentNumberIntent",
+          "slots": [
+            {
+              "name": "number",
+              "type": "AMAZON.FOUR_DIGIT_NUMBER",
+              "samples": [
+                "ok es {number}",
+                "es {number}",
+                "mi matricula es {number}",
+                "ok {number}",
+                "{number}"
+              ]
+            }
+          ],
+          "samples": [
+            "mi clave es {number}",
+            "mi número es {number}",
+            "soy el {number}",
+            "soy el numero {number}",
+            "mi numero es {number}",
+            "soy el alumno {number}",
+            "{number}",
+            "es el {number}",
+            "es {number}",
+            "mi numero de alumno es {number}",
+            "Mi numero es el {number}"
+          ]
+        },
+        {
+          "name": "LessonIntent",
+          "slots": [
+            {
+              "name": "lesson",
+              "type": "LessonSlotType"
+            }
+          ],
+          "samples": [
+            "quiero {lesson}",
+            "quiero estudiar {lesson}",
+            "con el tema {lesson}",
+            "pon {lesson}",
+            "quiero escuchar {lesson}",
+            "selecciona {lesson}",
+            "quiero repasar {lesson}",
+            "quiero estrudiar {lesson}",
+            "el {lesson}",
+            "la leccion {lesson}",
+            "{lesson}"
+          ]
+        },
+        {
+          "name": "FlowIntent",
+          "slots": [
+            {
+              "name": "continue",
+              "type": "YesOrNotSlotType",
+              "samples": [
+                "{continue}"
+              ]
+            }
+          ],
+          "samples": [
+            "{continue}"
+          ]
+        },
+        {
+          "name": "UnknownNumberIntent",
+          "slots": [],
+          "samples": [
+            "no lo sé",
+            "cuál número",
+            "donde lo encuentro",
+            "donde esta",
+            "que tipo de número",
+            "Dónde esta mi número",
+            "no estoy seguro",
+            "no lo recuerdo"
+          ]
+        },
+        {
+          "name": "RepiteIntent",
+          "slots": [],
+          "samples": [
+            "dime los contenidos otra vez",
+            "dime los contenidos de nuevo",
+            "dime la lista de nuevo",
+            "puedes repetir",
+            "puedes repetir por favor",
+            "escuchar contenido de nuevo",
+            "escuchar lista de nuevo",
+            "no escuche",
+            "de nuevo",
+            "repite"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "id": "10",
+              "name": {
+                "value": "Mindset Agil",
+                "synonyms": [
+                  "mainset ágil",
+                  "mainset",
+                  "diez",
+                  "decimo",
+                  "mindset ágil",
+                  "último"
+                ]
+              }
+            },
+            {
+              "id": "9",
+              "name": {
+                "value": "Diferencia entre proyectos en cascada y ágiles",
+                "synonyms": [
+                  "penúltimo",
+                  "Diferencia entre cascada y ágil",
+                  "Diferencia entre cascada y ágiles",
+                  "Diferencia entre proyectos de cascada y ágiles",
+                  "Diferencia entre proyectos en cascada y ágiles",
+                  "proyectos de cascada",
+                  "diferencia",
+                  "novena",
+                  "noveno",
+                  "nueve"
+                ]
+              }
+            },
+            {
+              "id": "8",
+              "name": {
+                "value": "Principios Agiles",
+                "synonyms": [
+                  "principios ágiles",
+                  "ocho principios",
+                  "principios",
+                  "octava",
+                  "octavo",
+                  "ocho"
+                ]
+              }
+            },
+            {
+              "id": "7",
+              "name": {
+                "value": "Valores Agiles",
+                "synonyms": [
+                  "séptimo valores Agiles",
+                  "séptimo",
+                  "séptimo, valores agiles",
+                  "Valores ágiles",
+                  "septimo",
+                  "siete",
+                  "valores"
+                ]
+              }
+            },
+            {
+              "id": "6",
+              "name": {
+                "value": "Manifiesto ágil",
+                "synonyms": [
+                  "sexto",
+                  "seis",
+                  "manifiesto",
+                  "seis manifiesto ágil",
+                  "seis, manifiesto ágil"
+                ]
+              }
+            },
+            {
+              "id": "5",
+              "name": {
+                "value": "Marcos de trabajo ágiles",
+                "synonyms": [
+                  "Marco",
+                  "Marcos de trabajo",
+                  "cinco marcos de trabajo ágiles",
+                  "cinco, marcos de trabajo ágiles",
+                  "Marcos de trabajo ágiles",
+                  "quinto",
+                  "5",
+                  "cinco"
+                ]
+              }
+            },
+            {
+              "id": "4",
+              "name": {
+                "value": "Agilidad y el entorno VUCA",
+                "synonyms": [
+                  "cuatro",
+                  "VUCA",
+                  "entorno VUCA",
+                  "cuatro agilidad y el entorno VUCA",
+                  "Agilidad y el entorno VUCA",
+                  "cuatro, agilidad y el entorno VUCA",
+                  "4",
+                  "cuarto",
+                  "Cuatro"
+                ]
+              }
+            },
+            {
+              "id": "3",
+              "name": {
+                "value": "Complejidad de los proyectos",
+                "synonyms": [
+                  "tres",
+                  "tres, complejidad de los proyectos",
+                  "Complejidad de los proyectos",
+                  "Complejidad",
+                  "tres complejidad de los proyectos",
+                  "3",
+                  "tercero",
+                  "Tres"
+                ]
+              }
+            },
+            {
+              "id": "2",
+              "name": {
+                "value": "Porque usar agilidad",
+                "synonyms": [
+                  "dos",
+                  "dos, porque usar agilidad",
+                  "dos porque usar agilidad",
+                  "Porque usar agilidad",
+                  "2",
+                  " segundo",
+                  "Dos"
+                ]
+              }
+            },
+            {
+              "id": "1",
+              "name": {
+                "value": "definición de agilidad",
+                "synonyms": [
+                  "uno",
+                  "uno definición",
+                  "uno definición de agilidad",
+                  "1",
+                  "primero",
+                  "Uno"
+                ]
+              }
+            }
+          ],
+          "name": "LessonSlotType"
+        },
+        {
+          "values": [
+            {
+              "id": "1",
+              "name": {
+                "value": "si",
+                "synonyms": [
+                  "si quiero continuar",
+                  "quiero continuar",
+                  "deseo continuar",
+                  "continuar",
+                  "quiero seguir con el tema",
+                  "Quiero repasar el tema en el que me quede",
+                  "sí",
+                  "de acuerdo",
+                  "okey",
+                  "ok"
+                ]
+              }
+            },
+            {
+              "id": "2",
+              "name": {
+                "value": "no",
+                "synonyms": [
+                  "Fin",
+                  "ya termine",
+                  "no quiero continuar",
+                  "Es todo por hoy",
+                  "quiero otro tema",
+                  "que otro tema hay",
+                  "muéstrame otro tema",
+                  "otro tema",
+                  "quiero revisar otro tema"
+                ]
+              }
+            }
+          ],
+          "name": "YesOrNotSlotType"
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "LessonIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "lesson",
+              "type": "LessonSlotType",
+              "elicitationRequired": false,
+              "confirmationRequired": false,
+              "prompts": {}
+            }
+          ]
+        },
+        {
+          "name": "FlowIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "continue",
+              "type": "YesOrNotSlotType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.851258892359.1579501587511"
+              }
+            }
+          ],
+          "delegationStrategy": "SKILL_RESPONSE"
+        },
+        {
+          "name": "StudentNumberIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "number",
+              "type": "AMAZON.FOUR_DIGIT_NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Slot.1568855055294.1468340167631",
+                "elicitation": "Elicit.Slot.83942728671.178254723238"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.1440212108107.1456289895176",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Selecciona uno, Negocios Turbulentos. dos, Fundamentos de Agilidad. tres, Valores Ágiles. cuatro, Principios Ágiles"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.21178294004.351630536290",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Quieres aprender otro contenido?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.851258892359.1579501587511",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Quieres continuar?"
+          }
+        ]
+      },
+      {
+        "id": "Slot.Validation.731240861660.778097317604.1482097263214",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Para continuar di Si, para elegir otro curso di No."
+          }
+        ]
+      },
+      {
+        "id": "Slot.Validation.613171784560.1154744454006.1140299632155",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Di sí, si quieres aprender otro contenido"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.83942728671.178254723238",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Cuál es tu matrícula?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.1568855055294.1468340167631",
+        "variations": [
+          {
+            "type": "SSML",
+            "value": "\u003cspeak\u003e\n    Tu clave de usuario es  \n    \u003csay-as interpret-as\u003d\"telephone\"\u003e {number} \u003c/say-as\u003e, ¿es correcto?\u003c/speak\u003e"
+          }
+        ]
+      }
+    ]
+  },
+  "version": "100"
+}
