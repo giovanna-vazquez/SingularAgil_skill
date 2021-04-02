@@ -3,23 +3,18 @@
  * Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
  * session persistence, api calls, and more.
  * */
- 
- /*CONSTANTS*/
+
+/*CONSTANTS*/
 const Alexa = require('ask-sdk-core');
-const host = 'http://34.121.76.223:80';
+const host = 'http://104.43.216.120:80';
 
-const initTextoLista = 'Selecciona el nombre del contenido que quieres aprender.';
-const lstContenidos = ' Uno, definición de agilidad. ' +
-    'Dos, Porque usar agilidad. ' +
-    'Tres, Complejidad de los proyectos. ' +
-    'Cuatro, Agilidad y el entorno VUCA. ' +
-    'Cinco, Marcos de trabajo ágiles. ' +
-    'Seis, Manifiesto ágil. ' +
-    'Siete, Valores ágiles. ' +
-    'Ocho, Principios ágiles. ' +
-    'Nueve, Diferencia entre proyectos en cascada y ágiles. ' +
-    'Diez, Mindset ágil. ';
-
+const initTextoLista = 'Los 11 temas que podemos aprender son. ';
+const endTextoListaPrimeraParte = ' ¿Quieres conocer el resto de los temas?';
+const endTextoListaSegundaParte = ' ¿Con cuál tema quieres iniciar?';
+var lstContenidosRestantes = '';
+var lstPrimeraMitadContenidos = '';
+var lstSegundaMitadContenidos = '';
+var lstDescripcion = '';
 
 
 const LaunchRequestHandler = {
@@ -29,14 +24,16 @@ const LaunchRequestHandler = {
     handle(handlerInput) {
         const speakOutput = 'Claro... ¿me puedes proporcionar tu número de matrícula para continuar aprendiendo?';
         const repromptOutput = 'Hmm, Recuerda que puedes encontrar tu número de matrícula en tu correo electrónico. Si ya lo tienes ¿me puedes proporcionar tu número de mátricula?';
-        
+
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        sessionAttributes.intentsCount= 0;
-        sessionAttributes.maxIntents= 1;
-        
+        sessionAttributes.intentsCount = 0;
+        sessionAttributes.maxIntents = 1;
+        sessionAttributes.temas = null;
+        sessionAttributes.persona = null;
+
         handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-        
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(repromptOutput)
@@ -46,23 +43,38 @@ const LaunchRequestHandler = {
 
 const UnknownIntentHandler = {
     canHandle(handlerInput) {
-         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'UnknownNumberIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'Puedes encontrar tu número de matrícula en tu correo electrónico. Si ya lo tienes ¿me puedes proporcional tu número de mátricula?';
-        
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        sessionAttributes.intentsCount= 0;
-        sessionAttributes.maxIntents= 1;
-        
-        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-        
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
+        if (sessionAttributes.persona === null) {
+
+            const speakOutput = 'Puedes encontrar tu número de matrícula en tu correo electrónico. Si ya lo tienes ¿me puedes proporcionar tu número de matrícula?';
+
+            const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+            sessionAttributes.intentsCount = 0;
+            sessionAttributes.maxIntents = 1;
+
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else {
+            return handlerInput.responseBuilder
+                //.speak(mensajeResponse)
+                .addDelegateDirective({
+                    name: 'AMAZON.FallbackIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {}
+                })
+                .getResponse();
+        }
     }
 };
 
@@ -74,92 +86,143 @@ const StudentNumberIntentHandler = {
     async handle(handlerInput) {
         const numeroUsuarioRequest = handlerInput.requestEnvelope.request.intent.slots.number.value;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-       
-        var mensajeResponse = 'mensaje por defecto';
+
+        var mensajeResponse = '';
         var mensajeReprompt = ''
         var token = '';
-        //TODO: Consultar en base de datos el usuario 
-        //Request numero de usuario
         //Response Datos de usuario y ultimo Contenido revisado
         var userExists = false;
         var lastContent = ''; //Variable de sesion 
         var nombreUsuario = '';
-        
-        await getToken(host + '/login') 
-        .then((response) => {
-            token = response;
-            sessionAttributes.token = token;
-            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-        })
-        .catch((err) => {
-            mensajeResponse = err.message;
-         //mensajeResponse = '¡Oh!, algo salió mal, intentalo nuevamente.';
-        });
-       
-        await getStudentData(host + '/studentByEnrollment/' + numeroUsuarioRequest , token)
-        .then((response) => {
-            const data = JSON.parse(response);
-            var persona = {
-                id: data.id,
-                matricula: data.matricula,
-                nombre: data.nombre,
-                apellido: data.apellido,
-                email: data.email,
-                telefono: data.telefono,
-                ultimo_curso: data.ultimo_curso
-            };
-            sessionAttributes.persona = persona;
-            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-            nombreUsuario = data.nombre;
-            lastContent = data.ultimo_curso;
-            userExists = data.id =! null ? true : false;
-        })
-        .catch((err) => {
-             //mensajeResponse = 'error: ' + err.message;
-            // mensajeResponse = '¡Oh!, algo salió mal, intentalo nuevamente.';
-        });
-     
-      
+        var nTemas = 0;
+
+        await getToken(host + '/login')
+            .then((response) => {
+                token = response;
+                sessionAttributes.token = token;
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            })
+            .catch((err) => {
+                mensajeResponse = '¡Oh!, algo salió mal, intentalo nuevamente.';
+            });
+
+        await getStudentData(host + '/studentByEnrollment/' + numeroUsuarioRequest, token)
+            .then((response) => {
+                const data = JSON.parse(response);
+                var persona = {
+                    id: data.id,
+                    matricula: data.matricula,
+                    nombre: data.nombre,
+                    apellido: data.apellido,
+                    email: data.email,
+                    telefono: data.telefono,
+                    id_ultimo_tema: data.id_ultimotema,
+                    titulo_ultimo_tema: data.titulo_ultimotema
+                };
+                sessionAttributes.persona = persona;
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+                nombreUsuario = data.nombre;
+                lastContent = data.id_ultimotema;
+                userExists = data.id = ! null ? true : false;
+            })
+            .catch((err) => {
+                mensajeResponse = '¡Oh!, algo salió mal, intentalo nuevamente.';
+            });
+
+
         //Si el usuario existe
         //Consulta ultimo contenido
-        if(userExists)
-        {
-            if(lastContent !==null){
-                    
-                var titleContent = getTitle(lastContent);
-                // mensajeResponse = '¿Quieres continuar el curso '+ lastContent +'?';
-                mensajeResponse = 'Hola nuevamente ' + nombreUsuario + '. Tu último tema fue '+ titleContent +'. ';
+        if (userExists) {
+            //Obtener temas segun su avance de estudio
+            await getStudentTopics(host + '/remainingTopics/' + sessionAttributes.persona.id, token)
+                .then((response) => {
+                    lstContenidosRestantes = '';
+                    const data = JSON.parse(response);
+                    nTemas = Object.keys(data).length;
+                    data.forEach(function (item) {
+                        lstContenidosRestantes += `${item.id}, ${item.titulo}. `;
+                    });
+
+                })
+                .catch((err) => {
+                    mensajeResponse = 'error: ' + err.message;
+                });
+
+            if (nTemas < 10 && nTemas > 0) {
+                var nfinalizados = 10 - nTemas;
+                var nrestantes = nTemas;
+                if (nTemas > 1) {
+                    mensajeResponse = 'Hola nuevamente ' + nombreUsuario + ', ya finalizaste ' + nfinalizados + ' temas. Los ' + nrestantes + ' que te faltan son, ' + lstContenidosRestantes + ' ¿Con cuál tema quieres continuar?';
+                }
+                else {
+                    mensajeResponse = 'Hola nuevamente ' + nombreUsuario + ', ya finalizaste ' + nfinalizados + ' temas. El tema que te falta es, ' + lstContenidosRestantes;
+                    //TODO: continuar lleva al tema que le falta
+                    sessionAttributes.flujo = 'continuar';
+                    var idxId = lstContenidosRestantes.indexOf(",") + 1;
+                    var idNextTopic = lstContenidosRestantes.substring(0, idxId);
+                    sessionAttributes.lastLesson = idNextTopic;
+                    handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+                    return handlerInput.responseBuilder
+                        .speak(mensajeResponse)
+                        .addDelegateDirective({
+                            name: 'FlowIntent',
+                            confirmationStatus: 'NONE',
+                            slots: {}
+                        })
+                        .getResponse();
+                }
+
                 mensajeReprompt = "Hmm, no escuche tu respuesta ¿Quieres continuar con otro tema?";
-                
-                // SET variable sesion flujo=continuar
-                sessionAttributes.flujo = 'continuar';
-                sessionAttributes.lastLesson = lastContent;
-                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-                    
-                return handlerInput.responseBuilder
-                .speak(mensajeResponse)
-                .addDelegateDirective({
-                    name: 'FlowIntent',
-                    confirmationStatus: 'NONE',
-                    slots: {}})
-                .getResponse();
+
             }
-            else{
-                mensajeResponse = 'Te damos la bienvenida al curso de Agilidad. ' + nombreUsuario + ', los temas que podemos aprender son: ' + lstContenidos;
-                mensajeReprompt = 'Hmm, no escuche tu respuesta, si quieres puedo repetir la lista de temas o si prefieres puedes revisar en tu correo electrónico la lista de temas que podemos estudiar ¿Quieres que repita los temas?';
+            else if (nTemas === 0) {
+                mensajeResponse = 'Hola nuevamente ' + nombreUsuario + ', ¡ya completaste todos los temas del curso! ¿Quieres que te diga los primeros 5 temas para repasar alguno?';
+                mensajeReprompt = "Hmm, no escuche tu respuesta ¿Quieres continuar con otro tema?";
+                sessionAttributes.flujo = 'otroContenido';
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            }
+            else {
+                if (lastContent !== null) {
+
+                    mensajeResponse = 'Hola nuevamente ' + nombreUsuario + '. Tu último tema fue ' + sessionAttributes.persona.titulo_ultimo_tema + '. ';
+                    mensajeReprompt = "Hmm, no escuche tu respuesta ¿Quieres continuar con otro tema?";
+
+                    // SET variable sesion flujo=continuar
+                    sessionAttributes.flujo = 'continuar';
+                    sessionAttributes.lastLesson = lastContent;
+                    handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+                    return handlerInput.responseBuilder
+                        .speak(mensajeResponse)
+                        .addDelegateDirective({
+                            name: 'FlowIntent',
+                            confirmationStatus: 'NONE',
+                            slots: {}
+                        })
+                        .getResponse();
+                }
+                else {
+                    var topicssessionAttributes = await getContents(handlerInput);
+                    handlerInput.attributesManager.setSessionAttributes(topicssessionAttributes);
+
+                    mensajeResponse = 'Hola ' + nombreUsuario + ', te damos la bienvenida al curso de Agilidad. ' + initTextoLista + ' ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+                    mensajeReprompt = 'Hmm, no escuche tu respuesta, si quieres puedo repetir la lista de temas o si prefieres puedes revisar en tu correo electrónico la lista de temas que podemos estudiar ¿Quieres que repita los temas?';
+                    sessionAttributes.flujo = 'segundosTemas';
+                    handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+                }
             }
         }
-        else if (sessionAttributes.intentsCount < sessionAttributes.maxIntents)
-        {
+        else if (sessionAttributes.intentsCount < sessionAttributes.maxIntents) {
             mensajeResponse = 'Hmm, no encuentro tu número en el registro. ¿Puedes repetirlo?';
             sessionAttributes.intentsCount = sessionAttributes.intentsCount + 1;
             handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
         }
-        else
-        {
+        else {
             mensajeResponse = '¡Oh!, algo salió mal, no encuentro tu información. Valida tu información e intentalo nuevamente.';
         }
-        
+
         return handlerInput.responseBuilder
             .speak(mensajeResponse)
             .reprompt(mensajeReprompt)
@@ -174,153 +237,585 @@ const LessonIntentHandler = {
     },
     async handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        
+        const flow = handlerInput.requestEnvelope.request.intent.name;
+        var contentText = "";
+        if (sessionAttributes.temas === null) {
+            var topicssessionAttributes = await getContents(handlerInput);
+            handlerInput.attributesManager.setSessionAttributes(topicssessionAttributes);
+        }
         const numleccionRequest = handlerInput.requestEnvelope.request.intent.slots.lesson.value;
         var idleccionRequest = '';
-        
-        try{
+
+        try {
             idleccionRequest = handlerInput.requestEnvelope.request.intent.slots.lesson.resolutions.resolutionsPerAuthority[0].values[0].value.id;
         }
-        catch(error){
-            /*Cuando el intent fue delegado y no es posible acceder a este dato.*/
-            //idleccionRequest =  numleccionRequest;
+        catch (error) {
+
         }
-        
-        if(idleccionRequest !== '' || (idleccionRequest === '' && sessionAttributes.flujo === 'continuar')){
-            const speakOutput = 'Contenido: ' + numleccionRequest + ' ID: ' + idleccionRequest + '. Descripción de contenido aquí. ';
-       
-            //TODO: funcion para leer contenido del curso seleccionado
+
+        if (idleccionRequest !== '' || (idleccionRequest === '' && sessionAttributes.flujo === 'continuar')) {
+
+            if (idleccionRequest === '') idleccionRequest = numleccionRequest;
+
+            sessionAttributes.currentlesson = idleccionRequest;
+            //Limpia lista de subtems
+            sessionAttributes.listSubtopics = null;
+
+            //Funcion para leer contenido del curso seleccionado
+            await getTopicContent(host + '/topics/' + idleccionRequest, sessionAttributes.token)
+                .then((response) => {
+                    const data = JSON.parse(response);
+                    contentText = data.contenido;
+
+                })
+                .catch((err) => {
+                });
+
+            const speakOutput = contentText + ' ';
+
             const repromptOutput = '¿Quieres aprender otro contenido?';
-        
-            if(sessionAttributes.flujo === 'continuar'){
-           
-                sessionAttributes.flujo = 'otroContenido';
-                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-        
-                return handlerInput.responseBuilder
-                .speak(speakOutput + '. Para continuar con otro contenido, selecciona, ' + lstContenidos)
-                .reprompt('¡Adios!')
-                .getResponse();
+
+            if (idleccionRequest === '7' || idleccionRequest === '8') {
+                contentText = '';
+
+                //TODO: obtiene los subtemas
+                await getSubtopicList(host + '/listSubtopicsTopic/' + idleccionRequest, sessionAttributes.token)
+                    .then((response) => {
+                        try {
+                            const data = JSON.parse(response);
+
+                            sessionAttributes.listSubtopics = '';
+                            //TODO: obtiene los subtemas
+                            data.forEach(function (item) {
+                                sessionAttributes.listSubtopics += `${item.id},`;
+                            });
+                            sessionAttributes.listSubtopics = sessionAttributes.listSubtopics.substring(0, sessionAttributes.listSubtopics.length - 1);
+                            sessionAttributes.flujo = 'subtema';
+                            sessionAttributes.lastSubtopic = 0; //Indica que ve a empezar con el primer arreglo de los primeros subtemas
+                        }
+                        catch (error) { }
+
+                    })
+                    .catch((err) => {
+                    });
+
+                //TODO: descomentar y enviar avance al log
+                await saveStudentProgress(host + '/topicslog/' ,sessionAttributes.token, sessionAttributes.persona['id'] , idleccionRequest)
+                .then((response) => {
+                })
+                .catch((err) => {
+                });
+
+                //Si el tema es Valores Agiles se agrega un speech diferente para preguntar por los subtemas
+                if (idleccionRequest === '7') {
+
+
+                    if (flow === 'FlowSubtopicIntent') {
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput + '. Como escuchaste son cuatro los valores ágiles. ')
+                            .addDelegateDirective({
+                                name: 'FlowIntent',
+                                confirmationStatus: 'NONE',
+                                slots: {}
+                            })
+                            .getResponse();
+
+                    }
+                    else {
+
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput + '. Como escuchaste son cuatro los valores ágiles. ')
+                            .addDelegateDirective({
+                                name: 'FlowSubtopicIntent',
+                                confirmationStatus: 'NONE',
+                                slots: {}
+                            })
+                            .getResponse();
+                    }
+                }
+                else if (idleccionRequest === '8') { //si el tema es principios agiles va directamente a decir los primeros 4
+
+                    if (flow === 'FlowSubtopicIntent') {
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .addDelegateDirective({
+                                name: 'FlowIntent',
+                                confirmationStatus: 'NONE',
+                                slots: {}
+                            })
+                            .getResponse();
+
+                    }
+                    else {
+
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .addDelegateDirective({
+                                name: 'FlowSubtopicIntent',
+                                confirmationStatus: 'NONE',
+                                slots: {}
+                            })
+                            .getResponse();
+
+
+                    }
+                }
             }
-            else{
-                //SET variable sesion flujo=otroContenido
-                sessionAttributes.flujo = 'otroContenido';
-                
-                sessionAttributes.persona['ultimo_curso'] = idleccionRequest;
+
+
+            if (sessionAttributes.flujo === 'continuar') {
+
+                //sessionAttributes.flujo = 'otroContenido';
+                sessionAttributes.flujo = 'segundosTemas';
                 handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
-                var persona = sessionAttributes.persona;
-                
-                await saveStudentData(host + '/student/' + sessionAttributes.persona['id'] ,sessionAttributes.token, persona)
+
+                await saveStudentProgress(host + '/topicslog/', sessionAttributes.token, sessionAttributes.persona['id'], idleccionRequest)
                     .then((response) => {
                     })
                     .catch((err) => {
                     });
-        
-        
+
                 return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .reprompt(repromptOutput)
-                .addDelegateDirective({
-                    name: 'FlowIntent',
-                    confirmationStatus: 'NONE',
-                    slots: {}
-                })
-                .getResponse();
+                    .speak(speakOutput + '. Para continuar con otro de los 11 contenidos, selecciona, ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte)
+                    .reprompt('¡Adios!')
+                    .getResponse();
+            }
+            else {
+                //SET variable sesion flujo=otroContenido
+                sessionAttributes.flujo = 'otroContenido';
+
+                sessionAttributes.persona['ultimo_curso'] = idleccionRequest;
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+                var persona = sessionAttributes.persona;
+
+                await saveStudentProgress(host + '/topicslog/', sessionAttributes.token, sessionAttributes.persona['id'], idleccionRequest)
+                    .then((response) => {
+                    })
+                    .catch((err) => {
+                    });
+
+
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .reprompt(repromptOutput)
+                    .addDelegateDirective({
+                        name: 'FlowIntent',
+                        confirmationStatus: 'NONE',
+                        slots: {}
+                    })
+                    .getResponse();
             }
         }
-        else{
+        else {
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
             return handlerInput.responseBuilder
-                .speak('No encontre ese curso. Selecciona, ' + lstContenidos)
-                //.reprompt('No encontre ese curso. Selecciona, ' + lstContenidos)
+                .speak('No encontre ese curso. Selecciona, ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte)
                 .getResponse();
         }
     }
-    
+
+};
+
+const SubtopicIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'SubtopicIntent';
+    },
+    async handle(handlerInput) {
+
+        const idsubtema = handlerInput.requestEnvelope.request.intent.slots.subtopic.value;
+        const flow = handlerInput.requestEnvelope.request.intent.name;
+
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var currentTopic = sessionAttributes.currentlesson;
+
+
+        var grouplenth = currentTopic === '7' ? 2 : 4; //si el subtema es valores agiles , divide el contenido en grupos de dos. Si es principios agiles divide grupos de 4 temas.
+        let n = grouplenth * (sessionAttributes.lastSubtopic + 1); // va contando el numero de temas revisados
+        let ncount = 12; //12 principios
+
+        let arregloOriginal = sessionAttributes.listSubtopics.split(',');
+        let arregloDeArreglos = [];
+        for (let i = 0; i < arregloOriginal.length; i += grouplenth) { //Divide el total de temas en grupos y los asigna a un arreglo
+            let pedazo = arregloOriginal.slice(i, i + grouplenth);
+            arregloDeArreglos.push(pedazo);
+        }
+
+        var contentText = '';
+
+        var currentArray = sessionAttributes.lastSubtopic;
+
+
+        await getTopics(host + '/subtopics/', sessionAttributes.token)
+            .then((response) => {
+                const data = JSON.parse(response);
+                data.forEach(function (item) {
+
+                    if (arregloDeArreglos[currentArray].includes(item.id.toString())) { //si el contenido esta en el  arreglo actual lo agrega al speech
+                        contentText += item.contenido + ' ';
+                    }
+                });
+
+            })
+            .catch((err) => {
+            });
+
+        if (currentArray < arregloDeArreglos.length - 1) { // si no es el ultimo grupo de subtemas agrega texto de avance y pregunta si se desea revisar los siguientes subtemas
+            contentText += currentTopic === '7' ? ' Hasta aquí haz conocido los primeros ' + n + ' valores, revisaremos el resto. ' : ' Hasta aquí haz revisado ' + n + ' de los ' + ncount + ' principios ágiles, revisaremos el resto. ';
+
+
+
+            sessionAttributes.lastSubtopic += 1;
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            if (flow === 'FlowSubtopicIntent') {
+                return handlerInput.responseBuilder
+                    .speak(contentText)
+                    .reprompt('¿Quieres continuar?')
+                    .addDelegateDirective({
+                        name: 'FlowIntent',
+                        confirmationStatus: 'NONE',
+                        slots: {}
+                    })
+                    .getResponse();
+
+            }
+            else {
+
+                return handlerInput.responseBuilder
+                    .speak(contentText)
+                    .reprompt('¿Quieres continuar?')
+                    .addDelegateDirective({
+                        name: 'FlowSubtopicIntent',
+                        confirmationStatus: 'NONE',
+                        slots: {}
+                    })
+                    .getResponse();
+
+            }
+
+        }
+        else { //Si es el ultimo grupo de subtemas prepara las variables de sesion para revisar otros temas y salir de los subtemas
+            sessionAttributes.lastSubtopic = 0;
+            sessionAttributes.flujo = 'segundosTemas';
+            sessionAttributes.listSubtopics = null;
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            return handlerInput.responseBuilder
+                .speak(contentText + '. Para continuar con otro de los 11 contenidos, selecciona, ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte)
+                .reprompt('Adios')
+                .getResponse();
+        }
+    }
 };
 
 
 const YesIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowIntent'
-             && (handlerInput.requestEnvelope.request.intent.slots.continue.value === 'si'
-             || handlerInput.requestEnvelope.request.intent.slots.continue.value === 'sí'
-             || handlerInput.requestEnvelope.request.intent.slots.continue.resolutions.resolutionsPerAuthority[0].values[0].value.id==="1");
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowIntent'
+            && (handlerInput.requestEnvelope.request.intent.slots.continue.value === 'si'
+                || handlerInput.requestEnvelope.request.intent.slots.continue.value === 'sí'
+                || handlerInput.requestEnvelope.request.intent.slots.continue.resolutions.resolutionsPerAuthority[0].values[0].value.id === "1");
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         // LEER VARIABLE flujo
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-         
+
+        if (sessionAttributes.temas === null) {
+            var topicssessionAttributes = await getContents(handlerInput);
+            handlerInput.attributesManager.setSessionAttributes(topicssessionAttributes);
+        }
         //SI ES CONTINUAR 
-        if (sessionAttributes.flujo === 'continuar'){
+        if (sessionAttributes.flujo === 'continuar') {
             return handlerInput.responseBuilder
-            .addDelegateDirective({
-                name: 'LessonIntent',
-                confirmationStatus: 'NONE',
-                slots: {
-                   lesson: {
-                        name: 'lesson',
-                        value: sessionAttributes.lastLesson
+                .addDelegateDirective({
+                    name: 'LessonIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {
+                        lesson: {
+                            name: 'lesson',
+                            value: sessionAttributes.lastLesson
+                        }
                     }
-                }
-            })
-            .getResponse();
-         }
-         else if(sessionAttributes.flujo === 'otroContenido'){
-            //SI ES otroContenido
-            const speakOutput = initTextoLista + lstContenidos;
-        
+                })
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'subtema') {
             return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
-         }
-        
+                .addDelegateDirective({
+                    name: 'SubtopicIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {
+                        subtopic: {
+                            name: 'subtopic',
+                            value: sessionAttributes.listSubtopics.split(',')[0]
+                        }
+                    }
+                })
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'otroContenido') {
+            //SI ES otroContenido
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'primerosTemas') {
+            const speakOutput = sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'segundosTemas') {
+            const speakOutput = sessionAttributes.temas.segunda_parte + endTextoListaSegundaParte;
+            //Regresar flujo a primerosTemas
+            sessionAttributes.flujo = 'primerosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+
     }
 };
 
 const NoIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowIntent'
-             && (handlerInput.requestEnvelope.request.intent.slots.continue.value === 'no'
-             || handlerInput.requestEnvelope.request.intent.slots.continue.resolutions.resolutionsPerAuthority[0].values[0].value.id==="2");
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowIntent'
+            && (handlerInput.requestEnvelope.request.intent.slots.continue.value === 'no'
+                || handlerInput.requestEnvelope.request.intent.slots.continue.resolutions.resolutionsPerAuthority[0].values[0].value.id === "2");
     },
-    handle(handlerInput) {
-        
+    async handle(handlerInput) {
+
         //LEER VARIABLE flujo
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        
-        //SI ES continuar 
-        if (sessionAttributes.flujo === 'continuar'){
-            sessionAttributes.flujo = 'otroContenido';
-              
-            const speakOutput = initTextoLista + lstContenidos;
-        
-            return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
+        if (sessionAttributes.temas === null) {
+            var topicssessionAttributes = await getContents(handlerInput);
+            handlerInput.attributesManager.setSessionAttributes(topicssessionAttributes);
         }
-        else if(sessionAttributes.flujo === 'otroContenido'){
+        //SI ES continuar 
+        if (sessionAttributes.flujo === 'continuar') {
+            //sessionAttributes.flujo = 'otroContenido';
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'subtema') {
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+            sessionAttributes.lastSubtopic = 0;
+            sessionAttributes.flujo = 'segundosTemas';
+            sessionAttributes.listSubtopics = null;
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt('¿Quieres escuchar los siguientes temas?')
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'otroContenido') {
             //SI ES otroContenido
             const speakOutput = '¡Adiós!';
-        
+
             return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .getResponse();
+                .speak(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'segundosTemas') {
+            sessionAttributes.flujo = 'primerosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            //SI ES otroContenido
+            const speakOutput = '¿Con cuál tema quieres iniciar?';
+            const speakReprompt = 'Hmm, no escuche tu respuesta ¿Quieres que te repita los primeros 5 temas?';
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakReprompt)
+                .getResponse();
         }
     }
 };
 
+
+const YesSubtopicIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowSubtopicIntent'
+            && (handlerInput.requestEnvelope.request.intent.slots.review.value === 'si'
+                || handlerInput.requestEnvelope.request.intent.slots.review.value === 'sí'
+                || handlerInput.requestEnvelope.request.intent.slots.review.resolutions.resolutionsPerAuthority[0].values[0].value.id === "1");
+    },
+    async handle(handlerInput) {
+        // LEER VARIABLE flujo
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+        if (sessionAttributes.temas === null) {
+            var topicssessionAttributes = await getContents(handlerInput);
+            handlerInput.attributesManager.setSessionAttributes(topicssessionAttributes);
+        }
+        if (sessionAttributes.flujo === 'subtema') {
+            return handlerInput.responseBuilder
+                .addDelegateDirective({
+                    name: 'SubtopicIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {
+                        subtopic: {
+                            name: 'subtopic',
+                            value: sessionAttributes.listSubtopics.split(',')[0]
+                        }
+                    }
+                })
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'continuar') {
+            return handlerInput.responseBuilder
+                .addDelegateDirective({
+                    name: 'LessonIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {
+                        lesson: {
+                            name: 'lesson',
+                            value: sessionAttributes.lastLesson
+                        }
+                    }
+                })
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'otroContenido') {
+            //SI ES otroContenido
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'primerosTemas') {
+            const speakOutput = sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'segundosTemas') {
+            const speakOutput = sessionAttributes.temas.segunda_parte + endTextoListaSegundaParte;
+            //Regresar flujo a primerosTemas
+            sessionAttributes.flujo = 'primerosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+    }
+};
+
+
+const NoSubtopicIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'FlowSubtopicIntent'
+            && (handlerInput.requestEnvelope.request.intent.slots.review.value === 'no'
+                || handlerInput.requestEnvelope.request.intent.slots.review.value === 'no'
+                || handlerInput.requestEnvelope.request.intent.slots.review.resolutions.resolutionsPerAuthority[0].values[0].value.id === "2");
+    },
+    async handle(handlerInput) {
+        // LEER VARIABLE flujo
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+        if (sessionAttributes.flujo === 'subtema') {
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+            sessionAttributes.lastSubtopic = 0;
+            sessionAttributes.flujo = 'segundosTemas';
+            sessionAttributes.listSubtopics = null;
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt('¿Quieres escuchar los siguientes temas?')
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'continuar') {
+            //sessionAttributes.flujo = 'otroContenido';
+
+            const speakOutput = initTextoLista + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+
+            sessionAttributes.flujo = 'segundosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'otroContenido') {
+            //SI ES otroContenido
+            const speakOutput = '¡Adiós!';
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        }
+        else if (sessionAttributes.flujo === 'segundosTemas') {
+            sessionAttributes.flujo = 'primerosTemas';
+            handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            //SI ES otroContenido
+            const speakOutput = '¿Con cuál tema quieres iniciar?';
+            const speakReprompt = 'Hmm, no escuche tu respuesta ¿Quieres que te repita los primeros 5 temas?';
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakReprompt)
+                .getResponse();
+        }
+
+
+    }
+};
 const RepiteIntentHandler = {
     canHandle(handlerInput) {
-         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RepiteIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'Los temas son: ' + lstContenidos + ' . ¿Con cuál tema quieres iniciar?';
-        
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        const speakOutput = 'Los temas son: ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
+        sessionAttributes.flujo = 'segundosTemas';
+        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(speakOutput)
@@ -368,8 +863,10 @@ const FallbackIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
     },
     handle(handlerInput) {
-        //const speakOutput = 'Lo siento, no entiendo. Inténtalo de nuevo.';
-        const speakOutput = 'Hmm, no entendí tu respuesta, Estos son los temas que podemos estudiar. '+ lstContenidos + ' ¿Con cuál tema quieres iniciar?';
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.flujo = 'segundosTemas';
+        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+        const speakOutput = 'Hmm, no entendí tu respuesta, Estos son los temas que podemos estudiar. ' + sessionAttributes.temas.primera_parte + endTextoListaPrimeraParte;
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -425,7 +922,7 @@ const ErrorHandler = {
         console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
         const speakOutput = error.message;
         return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speakOutput + ' ¿Quieres continuar?')
             .reprompt(speakOutput)
             .getResponse();
     }
@@ -433,41 +930,41 @@ const ErrorHandler = {
 
 /*INTERCEPTORS*/
 const DialogManagementStateInterceptor = {
-  process(handlerInput) {
-    const currentIntent = handlerInput.requestEnvelope.request.intent;
+    process(handlerInput) {
+        const currentIntent = handlerInput.requestEnvelope.request.intent;
 
-    if (handlerInput.requestEnvelope.request.type === "IntentRequest"
-      && handlerInput.requestEnvelope.request.dialogState !== "COMPLETED") {
+        if (handlerInput.requestEnvelope.request.type === "IntentRequest"
+            && handlerInput.requestEnvelope.request.dialogState !== "COMPLETED") {
 
-      const attributesManager = handlerInput.attributesManager;
-      const sessionAttributes = attributesManager.getSessionAttributes();
+            const attributesManager = handlerInput.attributesManager;
+            const sessionAttributes = attributesManager.getSessionAttributes();
 
-      // If there are no session attributes we've never entered dialog management
-      // for this intent before.
-      if (sessionAttributes[currentIntent.name]) {
-        let savedSlots = sessionAttributes[currentIntent.name].slots;
-        for (let key in savedSlots) {
+            // If there are no session attributes we've never entered dialog management
+            // for this intent before.
+            if (sessionAttributes[currentIntent.name]) {
+                let savedSlots = sessionAttributes[currentIntent.name].slots;
+                for (let key in savedSlots) {
 
-          // we let the current intent's values override the session attributes
-          // that way the user can override previously given values.
-          // this includes anything we have previously stored in their profile.
-          if (!currentIntent.slots[key].value && savedSlots[key].value) {
-            currentIntent.slots[key] = savedSlots[key];
-          }
-        }    
-      }
+                    // we let the current intent's values override the session attributes
+                    // that way the user can override previously given values.
+                    // this includes anything we have previously stored in their profile.
+                    if (!currentIntent.slots[key].value && savedSlots[key].value) {
+                        currentIntent.slots[key] = savedSlots[key];
+                    }
+                }
+            }
 
-      sessionAttributes[currentIntent.name] = currentIntent;
-      attributesManager.setSessionAttributes(sessionAttributes);
+            sessionAttributes[currentIntent.name] = currentIntent;
+            attributesManager.setSessionAttributes(sessionAttributes);
+        }
     }
-  }
 };
 
 const getToken = (url) => new Promise((resolve, reject) => {
-      
+
     const client = url.startsWith('https') ? require('https') : require('http');
     const postData = JSON.stringify({
-        'username': 'alexa', 'password': 'password'
+        'username': 'alexa', 'password': 'Exo212021'
     });
 
     const options = {
@@ -475,23 +972,23 @@ const getToken = (url) => new Promise((resolve, reject) => {
         headers: {
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(postData)
-        } 
+        }
     }
- 
-    const req = client.request(url,options, (res) => {
+
+    const req = client.request(url, options, (res) => {
         var token = '';
         token = res.headers['authorization'];
         resolve(token);
-        });
+    });
     req.on('error', (err) => reject(err));
 
     req.write(postData);
     req.end();
-  
+
 });
 
 
-const getStudentData = (url,token) => new Promise((resolve, reject) => {
+const getStudentData = (url, token) => new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? require('https') : require('http');
     const options = {
         headers: {
@@ -499,7 +996,7 @@ const getStudentData = (url,token) => new Promise((resolve, reject) => {
             'Authorization': token
         }
     };
-    const request = client.get(url,options, (response) => {
+    const request = client.get(url, options, (response) => {
         if (response.statusCode < 200 || response.statusCode > 299) {
             reject(new Error(`Failed with status code: ${response.statusCode}`));
         }
@@ -508,67 +1005,164 @@ const getStudentData = (url,token) => new Promise((resolve, reject) => {
         response.on('end', () => resolve(body.join('')));
     });
     request.on('error', (err) => reject(err));
-  
+
 });
 
-const saveStudentData = (url,token,persona) => new Promise((resolve, reject) => {
+const getStudentTopics = (url, token) => new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? require('https') : require('http');
-    
-    const putData = JSON.stringify(
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        }
+    };
+    const request = client.get(url, options, (response) => {
+        if (response.statusCode < 200 || response.statusCode > 299) {
+            reject(new Error(`Failed with status code: ${response.statusCode}`));
+        }
+        const body = [];
+        response.on('data', (chunk) => body.push(chunk));
+        response.on('end', () => resolve(body.join('')));
+    });
+    request.on('error', (err) => reject(err));
+
+});
+
+const getTopics = (url, token) => new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? require('https') : require('http');
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        }
+    };
+    const request = client.get(url, options, (response) => {
+        if (response.statusCode < 200 || response.statusCode > 299) {
+            reject(new Error(`Failed with status code: ${response.statusCode}`));
+        }
+        const body = [];
+        response.on('data', (chunk) => body.push(chunk));
+        response.on('end', () => resolve(body.join('')));
+    });
+    request.on('error', (err) => reject(err));
+
+});
+
+const getTopicContent = (url, token) => new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? require('https') : require('http');
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        }
+    };
+    const request = client.get(url, options, (response) => {
+        if (response.statusCode < 200 || response.statusCode > 299) {
+            reject(new Error(`Failed with status code: ${response.statusCode}`));
+        }
+        const body = [];
+        response.on('data', (chunk) => body.push(chunk));
+        response.on('end', () => resolve(body.join('')));
+    });
+    request.on('error', (err) => reject(err));
+
+});
+
+const getSubtopicList = (url, token) => new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? require('https') : require('http');
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        }
+    };
+    const request = client.get(url, options, (response) => {
+        if (response.statusCode < 200 || response.statusCode > 299) {
+            reject(new Error(`Failed with status code: ${response.statusCode}`));
+        }
+        const body = [];
+        response.on('data', (chunk) => body.push(chunk));
+        response.on('end', () => resolve(body.join('')));
+    });
+    request.on('error', (err) => reject(err));
+
+});
+
+
+
+const saveStudentProgress = (url, token, id_persona, id_ultimotema) => new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? require('https') : require('http');
+
+    const postData = JSON.stringify(
         {
-            "id": persona.id,
-            "matricula": persona.matricula,
-            "nombre": persona.nombre,
-            "apellido": persona.apellido,
-            "email": persona.email,
-            "telefono": persona.telefono,
-            "ultimo_curso": persona.ultimo_curso
+            "id_estudiante": id_persona,
+            "id_tema": id_ultimotema,
+            "fecha": null
         }
     );
 
     const options = {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': token,
-            'Content-Length': Buffer.byteLength(putData)
-        } 
+            'Content-Length': Buffer.byteLength(postData)
+        }
     }
- 
-    const req = client.request(url,options, (res) => {
-         if (res.statusCode < 200 || res.statusCode > 299) {
+
+    const req = client.request(url, options, (res) => {
+        if (res.statusCode < 200 || res.statusCode > 299) {
             reject(new Error(`Failed with status code: ${res.statusCode}`));
         }
-        if(res.statusCode === 200){
+        if (res.statusCode === 200) {
             resolve('ok');
-            
+
         }
     });
     req.on('error', (err) => reject(err));
 
-    req.write(putData);
+    req.write(postData);
     req.end();
 });
 
+
 /*METHODS*/
-function getTitle(idContent){
-    var title = '';
-    
-    switch(idContent){
-        case '1': title = 'definición de agilidad'; break;
-        case '2': title = 'Porque usar agilidad'; break;
-        case '3': title = 'Complejidad de los proyectos'; break;
-        case '4': title = 'Agilidad y el entorno VUCA'; break;
-        case '5': title = 'Marcos de trabajo ágiles'; break;
-        case '6': title = 'Manifiesto ágil'; break;
-        case '7': title = 'Valores ágiles'; break;
-        case '8': title = 'Principios Ágiles'; break;
-        case '9': title = 'Diferencia entre proyectos en cascada y ágiles'; break;
-        case '10': title = 'Mindset ágil'; break;
-        default: title = 'Título no encontrado'; break;
-    }
-    return title;
+
+async function getContents(handlerInput) {
+    //const attributesManager = handlerInput.attributesManager;
+    const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+    var token = sessionAttributes.token;
+    await getTopics(host + '/listTopics/', token)
+        .then((response) => {
+            var contTemas = 1;
+            lstPrimeraMitadContenidos = '';
+            lstSegundaMitadContenidos = '';
+            const data = JSON.parse(response);
+            data.forEach(function (item) {
+                if (contTemas <= 5) {
+                    //primeros 5 temas
+                    lstPrimeraMitadContenidos += `${item.id}, ${item.titulo}. `;
+                }
+                else {
+                    //ultimos n temas
+                    lstSegundaMitadContenidos += `${item.id}, ${item.titulo}. `;
+                }
+               
+                contTemas++;
+
+            });
+
+            var listaTemas = {
+                primera_parte: lstPrimeraMitadContenidos,
+                segunda_parte: lstSegundaMitadContenidos
+            };
+            sessionAttributes.temas = listaTemas;
+            return sessionAttributes;
+        })
+        .catch((err) => {
+        });
 }
+
 /**
  * This handler acts as the entry point for your skill, routing all request and response
  * payloads to the handlers above. Make sure any new handlers or interceptors you've
@@ -580,8 +1174,11 @@ exports.handler = Alexa.SkillBuilders.custom()
         UnknownIntentHandler,
         StudentNumberIntentHandler,
         LessonIntentHandler,
+        SubtopicIntentHandler,
         YesIntentHandler,
         NoIntentHandler,
+        YesSubtopicIntentHandler,
+        NoSubtopicIntentHandler,
         RepiteIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
