@@ -22,6 +22,7 @@
         {
           "name": "AMAZON.StopIntent",
           "samples": [
+            "ninguno",
             "bay",
             "no deseo",
             "no quiero",
@@ -82,6 +83,10 @@
             }
           ],
           "samples": [
+            "quiero repasar el {lesson}",
+            "selecciona el {lesson}",
+            "pon el {lesson}",
+            "quiero el {lesson}",
             "quiero {lesson}",
             "quiero estudiar {lesson}",
             "con el tema {lesson}",
@@ -128,6 +133,9 @@
           "name": "RepiteIntent",
           "slots": [],
           "samples": [
+            "puedes repetir los contenidos",
+            "puedes repetir los temas",
+            "puedes repetirme el número de los contenidos",
             "dime los contenidos otra vez",
             "dime los contenidos de nuevo",
             "dime la lista de nuevo",
@@ -139,11 +147,55 @@
             "de nuevo",
             "repite"
           ]
+        },
+        {
+          "name": "SubtopicIntent",
+          "slots": [
+            {
+              "name": "subtopic",
+              "type": "SubtopicSlotType"
+            }
+          ],
+          "samples": [
+            "{subtopic}"
+          ]
+        },
+        {
+          "name": "FlowSubtopicIntent",
+          "slots": [
+            {
+              "name": "review",
+              "type": "YesOrNotSlotType",
+              "samples": [
+                "{review}"
+              ]
+            }
+          ],
+          "samples": [
+            "{review}"
+          ]
         }
       ],
       "types": [
         {
           "values": [
+            {
+              "id": "11",
+              "name": {
+                "value": "Diferencia entre ser ágil y hacer agilidad",
+                "synonyms": [
+                  "Diferencia entre ser ágil y hacer agilidad",
+                  "ser ágil y hacer",
+                  "hacer agilidad",
+                  "ser ágil",
+                  "once",
+                  "onceavo",
+                  "once",
+                  "último",
+                  "ultimo"
+                ]
+              }
+            },
             {
               "id": "10",
               "name": {
@@ -153,8 +205,7 @@
                   "mainset",
                   "diez",
                   "decimo",
-                  "mindset ágil",
-                  "último"
+                  "mindset ágil"
                 ]
               }
             },
@@ -210,6 +261,7 @@
               "name": {
                 "value": "Manifiesto ágil",
                 "synonyms": [
+                  "Manifiesto agil",
                   "sexto",
                   "seis",
                   "manifiesto",
@@ -239,6 +291,7 @@
               "name": {
                 "value": "Agilidad y el entorno VUCA",
                 "synonyms": [
+                  "Agilidad y el entorno",
                   "cuatro",
                   "VUCA",
                   "entorno VUCA",
@@ -287,6 +340,7 @@
               "name": {
                 "value": "definición de agilidad",
                 "synonyms": [
+                  "definicion de agilidad",
                   "uno",
                   "uno definición",
                   "uno definición de agilidad",
@@ -306,6 +360,17 @@
               "name": {
                 "value": "si",
                 "synonyms": [
+                  "por supuesto",
+                  "claro",
+                  "sí sí quiero continuar",
+                  "sí quiero conocer los otro cinco",
+                  "continúa",
+                  "sí continúa",
+                  "continua",
+                  "siguiente",
+                  "si por favor",
+                  "avanza",
+                  "adelante",
                   "si quiero continuar",
                   "quiero continuar",
                   "deseo continuar",
@@ -324,6 +389,10 @@
               "name": {
                 "value": "no",
                 "synonyms": [
+                  "no es todo",
+                  "no me interesa",
+                  "basta",
+                  "no gracias",
                   "Fin",
                   "ya termine",
                   "no quiero continuar",
@@ -338,6 +407,107 @@
             }
           ],
           "name": "YesOrNotSlotType"
+        },
+        {
+          "values": [
+            {
+              "id": "16",
+              "name": {
+                "value": "Principio 12"
+              }
+            },
+            {
+              "id": "15",
+              "name": {
+                "value": "Principio 11"
+              }
+            },
+            {
+              "id": "14",
+              "name": {
+                "value": "Principio 10"
+              }
+            },
+            {
+              "id": "13",
+              "name": {
+                "value": "Principio 9"
+              }
+            },
+            {
+              "id": "12",
+              "name": {
+                "value": "Principio 8"
+              }
+            },
+            {
+              "id": "11",
+              "name": {
+                "value": "Principio 7"
+              }
+            },
+            {
+              "id": "10",
+              "name": {
+                "value": "Principio 6"
+              }
+            },
+            {
+              "id": "9",
+              "name": {
+                "value": "Principio 5"
+              }
+            },
+            {
+              "id": "8",
+              "name": {
+                "value": "Principio 4"
+              }
+            },
+            {
+              "id": "7",
+              "name": {
+                "value": "Principio 3"
+              }
+            },
+            {
+              "id": "6",
+              "name": {
+                "value": "Principio 2"
+              }
+            },
+            {
+              "id": "5",
+              "name": {
+                "value": "Principio 1"
+              }
+            },
+            {
+              "id": "4",
+              "name": {
+                "value": "Respuesta ante el cambio sobre seguir un plan"
+              }
+            },
+            {
+              "id": "3",
+              "name": {
+                "value": "Colaboración con el cliente sobre negociación contractual"
+              }
+            },
+            {
+              "id": "2",
+              "name": {
+                "value": "Software funcionando sobre documentación extensiva"
+              }
+            },
+            {
+              "id": "1",
+              "name": {
+                "value": "Individuos e interacciones sobre procesos y herramientas"
+              }
+            }
+          ],
+          "name": "SubtopicSlotType"
         }
       ]
     },
@@ -383,13 +553,45 @@
               "name": "number",
               "type": "AMAZON.FOUR_DIGIT_NUMBER",
               "elicitationRequired": true,
-              "confirmationRequired": true,
+              "confirmationRequired": false,
               "prompts": {
-                "confirmation": "Confirm.Slot.1568855055294.1468340167631",
                 "elicitation": "Elicit.Slot.83942728671.178254723238"
               }
             }
           ]
+        },
+        {
+          "name": "SubtopicIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "subtopic",
+              "type": "SubtopicSlotType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1601879089165.669491139802"
+              }
+            }
+          ]
+        },
+        {
+          "name": "FlowSubtopicIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "review",
+              "type": "YesOrNotSlotType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1034719830877.84140846084"
+              }
+            }
+          ],
+          "delegationStrategy": "SKILL_RESPONSE"
         }
       ],
       "delegationStrategy": "ALWAYS"
@@ -457,8 +659,26 @@
             "value": "\u003cspeak\u003e\n    Tu clave de usuario es  \n    \u003csay-as interpret-as\u003d\"telephone\"\u003e {number} \u003c/say-as\u003e, ¿es correcto?\u003c/speak\u003e"
           }
         ]
+      },
+      {
+        "id": "Elicit.Slot.1601879089165.669491139802",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Quieres revisar cada uno de ellos?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.1034719830877.84140846084",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿quieres revisar cada uno de ellos?"
+          }
+        ]
       }
     ]
   },
-  "version": "100"
+  "version": "122"
 }
